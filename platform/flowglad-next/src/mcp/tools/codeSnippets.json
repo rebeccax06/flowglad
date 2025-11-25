@@ -1,0 +1,87 @@
+{
+  "base": {
+    "supabase": {
+      "serverInitTemplate": "import { FlowgladServer } from '{SERVER_PKG}'\n// or wherever you initialize your supabase client\nimport { createClient } from '@/utils/supabase'\n\nexport const flowgladServer = new FlowgladServer({\n  supabaseAuth: {\n    client: createClient\n  },\n})",
+      "serverImport": "import { createClient } from '@/utils/supabase' // or wherever you initialize your supabase client",
+      "layoutImport": "import { FlowgladProvider } from '{PROVIDER_PKG}'\n// or wherever you initialize your supabase client\nimport { createClient } from '@/utils/supabase'",
+      "layoutGetUser": "const supabase = createClient()\n  const {\n    data: { user }\n  } = await supabase.auth.getUser()",
+      "layoutProvider": "<FlowgladProvider loadBilling={!!user}>",
+      "layoutProviderClose": "</FlowgladProvider>",
+      "userCheck": "!!user",
+      "userCheckDescription": "get the user via supabase auth"
+    },
+    "clerk": {
+      "serverInitTemplate": "import { currentUser } from '@clerk/nextjs/server'\nimport { FlowgladServer } from '{SERVER_PKG}'\n\nexport const flowgladServer = new FlowgladServer({\n  clerk: {\n    currentUser,\n  },\n})",
+      "serverImport": "import { currentUser } from '@clerk/nextjs/server'",
+      "layoutImport": "import { FlowgladProvider } from '{PROVIDER_PKG}'\nimport { currentUser } from '@clerk/nextjs/server'",
+      "layoutGetUser": "const user = await currentUser()",
+      "layoutProvider": "<FlowgladProvider loadBilling={!!user}>",
+      "layoutProviderClose": "</FlowgladProvider>",
+      "userCheck": "!!user",
+      "userCheckDescription": "get the user via clerk auth"
+    },
+    "nextauth": {
+      "serverInitTemplate": "import { auth } from '@/auth' // your initialized, configured NextAuth client\nimport { FlowgladServer } from '{SERVER_PKG}'\n\nexport const flowgladServer = new FlowgladServer({\n  nextAuth: {\n    auth,\n  },\n})",
+      "serverImport": "import { auth } from '@/auth' // your initialized, configured NextAuth client",
+      "layoutImport": "import { FlowgladProvider } from '{PROVIDER_PKG}'\nimport { SessionProvider } from 'next-auth/react'",
+      "layoutGetUser": "const session = await auth()",
+      "layoutProvider": "<SessionProvider basePath={'/auth'} session={session}>\n      <FlowgladProviderWithAuth\n        loadBilling={session.status === 'authenticated'}\n      >",
+      "layoutProviderClose": "      </FlowgladProviderWithAuth>\n    </SessionProvider>",
+      "userCheck": "session.status === 'authenticated'",
+      "userCheckDescription": "get the session via NextAuth"
+    },
+    "custom": {
+      "serverInitTemplate": "import { FlowgladServer } from '{SERVER_PKG}'\n// or whatever function you use to retrieve your session\nimport { getBespokeSession } from '@/utils/auth'\n\n// if you can load sessions using an enclosed function\nexport const flowgladServer = new FlowgladServer({\n  getRequestingCustomer: async () => {\n    const customSessionObject = await getBespokeSession()\n    return {\n      externalId: customSessionObject.id,\n      name: customSessionObject.name,\n      email: customSessionObject.email,\n    }\n  }\n})",
+      "serverImport": "// or whatever function you use to retrieve your session\nimport { getBespokeSession } from '@/utils/auth'",
+      "layoutImport": "import { FlowgladProvider } from '{PROVIDER_PKG}'\n// import your custom auth function",
+      "layoutGetUser": "const user = await getBespokeSession() // replace with your custom auth function",
+      "layoutProvider": "<FlowgladProvider loadBilling={!!user}>",
+      "layoutProviderClose": "</FlowgladProvider>",
+      "userCheck": "!!user",
+      "userCheckDescription": "get the user via your custom auth"
+    }
+  },
+  "frameworks": {
+    "nextjs": {
+      "serverPkg": "@flowglad/nextjs/server",
+      "providerPkg": "@flowglad/nextjs",
+      "billingHookPkg": "@flowglad/nextjs",
+      "routeHandlerTemplate": "'use server'\nimport { createAppRouterRouteHandler } from '{SERVER_PKG}'\nimport { flowgladServer } from '@/flowglad'\n\nconst routeHandler = createAppRouterRouteHandler(flowgladServer)\n\nexport { routeHandler as GET, routeHandler as POST }"
+    },
+    "react": {
+      "serverPkg": "@flowglad/server",
+      "providerPkg": "@flowglad/react",
+      "billingHookPkg": "@flowglad/react",
+      "routeHandlerTemplate": "import { createFetchRequestHandler } from '{SERVER_PKG}'\nimport { flowgladServer } from '@/flowglad'\n\nconst flowgladFetchRequestHandler = createFetchRequestHandler({\n  flowgladServer\n  // optional fields: onError, beforeRequest, afterRequest\n})\n\nexport const flowgladRouteHandler = async (req: Request, res: Response) => {\n  const result = await flowgladFetchRequestHandler(req)\n  return result\n}"
+    }
+  },
+  "common": {
+    "billingPageTemplate": "'use client'\nimport { useBilling } from '@flowglad/nextjs'\n\nexport default function Billing() {\n  const { checkFeatureAccess } = useBilling()\n  if (!checkFeatureAccess) {\n    return <div>Loading ...</div>  \n  }\n  if (checkFeatureAccess(\"my_feature\")) {\n    return <div>You have access!</div>\n  } else {\n    return <div>Please upgrade</div>\n  }\n}"
+  },
+  "filePaths": {
+    "app": {
+      "serverFile": "flowglad.ts",
+      "routeHandler": "/api/flowglad/[...path]/route.ts",
+      "layoutFile": "app/layout.tsx",
+      "billingPage": "app/billing/page.tsx"
+    },
+    "src/app": {
+      "serverFile": "src/flowglad.ts",
+      "routeHandler": "src/app/api/flowglad/[...path]/route.ts",
+      "layoutFile": "src/app/layout.tsx",
+      "billingPage": "src/app/billing/page.tsx"
+    },
+    "pages": {
+      "serverFile": "flowglad.ts",
+      "routeHandler": "pages/api/flowglad/[...path].ts",
+      "layoutFile": "pages/_app.tsx",
+      "billingPage": "pages/billing.tsx"
+    },
+    "src/pages": {
+      "serverFile": "src/flowglad.ts",
+      "routeHandler": "src/pages/api/flowglad/[...path].ts",
+      "layoutFile": "src/pages/_app.tsx",
+      "billingPage": "src/pages/billing.tsx"
+    }
+  }
+}
